@@ -18,3 +18,17 @@ SOURCES += main.cpp\
 HEADERS  += window.h
 
 FORMS    += window.ui
+
+INCLUDEPATH += $$PWD/lib/
+INCLUDEPATH += $$PWD/include/
+
+DEPENDPATH += $$PWD/lib/
+
+PRE_TARGETDEPS += $$PWD/lib/libspread.a
+PRE_TARGETDEPS += $$PWD/lib/libtspread-core.a
+PRE_TARGETDEPS += $$PWD/lib/libspread-core.a
+
+LIBS += -L$$PWD/lib/ -lspread
+LIBS += -L$$PWD/lib/ -ltspread-core
+LIBS += -L$$PWD/lib/ -lspread-core
+
