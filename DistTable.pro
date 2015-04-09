@@ -11,11 +11,14 @@ greaterThan(QT_MAJOR_VERSION, 4): QT += widgets
 TARGET = DistTable
 TEMPLATE = app
 
+QMAKE_CXXFLAGS += -std=gnu++11
 
 SOURCES += main.cpp\
-        window.cpp
+        window.cpp \
+    spreadmanager.cpp
 
-HEADERS  += window.h
+HEADERS  += window.h \
+    spreadmanager.h
 
 FORMS    += window.ui
 
@@ -32,3 +35,4 @@ LIBS += -L$$PWD/lib/ -lspread
 LIBS += -L$$PWD/lib/ -ltspread-core
 LIBS += -L$$PWD/lib/ -lspread-core
 
+#LIBS += -lQt5Concurrent

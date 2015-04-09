@@ -5,7 +5,7 @@
 #include <QtCore>
 #include <QtGui>
 #include <QPushButton>
-
+#include "spreadmanager.h"
 
 
 namespace Ui {
@@ -26,14 +26,20 @@ private:
     QPushButton *button;
     QVector<QPoint> points;
     QVector<QVector<QPoint> > p_arr;
+
+    SpreadManager *sp;
+
     bool mousePressed;
     int numOfLines;
     void setup();
 
 private slots:
     void on_button_clicked();
-
     void on_pushButton_clicked();
+    void handleMess(char* mess);
+    void on_connect_but_clicked();
+    void didConnect();
+
 
 protected:
     void paintEvent(QPaintEvent *e);
