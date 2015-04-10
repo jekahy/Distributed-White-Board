@@ -15,6 +15,7 @@ SpreadManager::~SpreadManager()
 
 void SpreadManager::initConnection(QString _port, QString _name, QString _group){
 
+    this->name = _name;
     char *group = toChar(_group);
     char *port = toChar(_port);
     char *name = toChar(_name);
@@ -40,13 +41,23 @@ void SpreadManager::initConnection(QString _port, QString _name, QString _group)
         SP_error( ret );
         Bye();
     }
-
     connected = true;
+
     emit didConnect();
 
     QtConcurrent::run(this,&SpreadManager::Read_thread_routine);
 
     qDebug("User: connected to %s with private group %s\n", port, Private_group);
+}
+
+
+void SpreadManager::closeConnection(){
+
+    int t = SP_disconnect( Mbox );
+    qDebug("disconected:%d",t);
+    connected = false;
+
+    emit didDisconnect();
 }
 
 char* SpreadManager::toChar(QString str){
@@ -66,7 +77,7 @@ void SpreadManager::Read_message(int fd, int code, void *data)
     Q_UNUSED(data);
 
     static	char		 mess[MAX_MESSLEN];
-    char		 sender[MAX_GROUP_NAME];
+    char		 sender[MAX_GROUP_NAME];    
     char		 target_groups[MAX_MEMBERS][MAX_GROUP_NAME];
     membership_info  memb_info;
     vs_set_info      vssets[MAX_VSSETS];
@@ -85,6 +96,17 @@ void SpreadManager::Read_message(int fd, int code, void *data)
     ret = SP_receive( Mbox, &service_type, sender, 100, &num_groups, target_groups,
         &mess_type, &endian_mismatch, sizeof(mess), mess );
     printf("\n============================\n");
+
+    QString qs = QString(sender);
+    QStringList strList = qs.split('#');
+
+    QString qsender;
+    if(strList.count()>1){
+        qsender = strList[1];
+
+    }
+
+
     if( ret < 0 )
     {
                 if ( (ret == GROUPS_TOO_SHORT) || (ret == BUFFER_TOO_SHORT) ) {
@@ -117,7 +139,9 @@ void SpreadManager::Read_message(int fd, int code, void *data)
             sender, mess_type, endian_mismatch, num_groups, ret, mess );
 
 
-        emit messReceived(mess);
+        if(qsender != name){
+            emit messReceived(mess);
+        }
 
 //        SpreadManager->messReceived(mess_type, mess);
     }else if( Is_membership_mess( service_type ) )
@@ -184,10 +208,18 @@ void SpreadManager::Read_message(int fd, int code, void *data)
 
 void SpreadManager:: Read_thread_routine()
 {
-    for(;;)
+
+    while(connected)
+//    forever
     {
+//        if(!connected){
+//            qDebug("break");
+//            return;
+//        }
         Read_message(0,0,NULL);
     }
+    qDebug("break\n\n\n\n\\n\n\n\n");
+    return ;
 }
 
 
@@ -206,7 +238,28 @@ void SpreadManager::Bye()
 {
     To_exit = 1;
     printf("\nBye.\n");
-    SP_disconnect( Mbox );
+    closeConnection();
 //    pthread_join( Read_pthread, NULL );
     exit( 0 );
 }
+
+
+// drawing
+
+void SpreadManager::startDrawing(QPoint p){
+    QString mess = QString("com0 x=%1 y=%2").arg(QString::number(p.x()),QString::number(p.y()));
+    sendMes(mess);
+}
+
+
+void SpreadManager::continueDrawing(QPoint p){
+    QString mess = QString("com1 x=%1 y=%2").arg(QString::number(p.x()),QString::number(p.y()));
+    sendMes(mess);
+}
+
+
+void SpreadManager::stopDrawing(QPoint p){
+    QString mess = QString("com2 x=%1 y=%2").arg(QString::number(p.x()),QString::number(p.y()));
+    sendMes(mess);
+}
+

@@ -33,19 +33,25 @@ private:
     int numOfLines;
     void setup();
 
+
+    void startDrawing(QPoint p);
+    void continueDrawing(QPoint p);
+    void stopDrawing();
+
 private slots:
     void on_button_clicked();
     void on_pushButton_clicked();
     void handleMess(char* mess);
     void on_connect_but_clicked();
     void didConnect();
-
+    void didDisconnect();
 
 protected:
     void paintEvent(QPaintEvent *e);
     void mousePressEvent(QMouseEvent *e);
     void mouseReleaseEvent(QMouseEvent *e);
     void mouseMoveEvent(QMouseEvent *e);
+
 };
 
 #endif // WINDOW_H

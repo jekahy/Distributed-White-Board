@@ -13,6 +13,9 @@ TEMPLATE = app
 
 QMAKE_CXXFLAGS += -std=gnu++11
 
+macx:QMAKE_CXXFLAGS += -stdlib=libc++
+macx:QMAKE_LFLAGS += -stdlib=libc++
+
 SOURCES += main.cpp\
         window.cpp \
     spreadmanager.cpp
