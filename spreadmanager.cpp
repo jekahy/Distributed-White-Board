@@ -1,7 +1,10 @@
 #include "spreadmanager.h"
 #include <QtConcurrent/QtConcurrent>
 #include <string>
-#include<QDebug>
+#include <QDebug>
+#include "notificationmanager.h"
+#include "singleton.h"
+#include "qmessagebox.h"
 
 SpreadManager::SpreadManager(QObject *parent) : QObject(parent)
 {
@@ -32,7 +35,16 @@ void SpreadManager::initConnection(QString _port, QString _name, QString _group)
     if( ret != ACCEPT_SESSION )
     {
         SP_error( ret );
-        Bye();
+        QString errMess = decryptErrorMessage(ret);
+
+        NotificationManager *notm = &Singleton<NotificationManager>::Instance();
+        std::function<void (int)> fp = [](int a) { Q_UNUSED(a); };
+
+
+//        std::function<void (QMessageBox)> butFunc = [](QMessageBox mbox)->void { mbox.setStandardButtons(QMessageBox::Ok);};
+        notm->showAlert(errMess,fp);
+//        NotificationManager::showAlert(errMess,fp);
+        return;
     }
 
     ret = SP_join(Mbox,group_name);
@@ -40,6 +52,7 @@ void SpreadManager::initConnection(QString _port, QString _name, QString _group)
     {
         SP_error( ret );
         Bye();
+
     }
     connected = true;
 
@@ -261,5 +274,55 @@ void SpreadManager::continueDrawing(QPoint p){
 void SpreadManager::stopDrawing(QPoint p){
     QString mess = QString("com2 x=%1 y=%2").arg(QString::number(p.x()),QString::number(p.y()));
     sendMes(mess);
+}
+
+
+QString SpreadManager::decryptErrorMessage(int errNum){
+    QString mess;
+    switch (errNum) {
+    case ILLEGAL_SPREAD:
+        mess = "Illegal Spread.";
+        break;
+    case COULD_NOT_CONNECT:
+        mess = "Could not connect.";
+        break;
+    case REJECT_NO_NAME:
+        mess = "Name not specified.";
+        break;
+    case REJECT_NOT_UNIQUE:
+        mess = "Name not unique.";
+        break;
+    case REJECT_ILLEGAL_NAME:
+        mess = "Illegal name.";
+        break;
+    case CONNECTION_CLOSED:
+        mess = "Connection closed.";
+        break;
+    case REJECT_AUTH:
+        mess = "Reject Auth data.";
+        break;
+    case ILLEGAL_GROUP:
+        mess = "Illegal group.";
+        break;
+    case ILLEGAL_MESSAGE:
+        mess = "Illegal message.";
+        break;
+    case ILLEGAL_SERVICE:
+        mess = "Illegal port.";
+        break;
+    case ILLEGAL_SESSION:
+        mess = "Illegal session.";
+        break;
+    case NET_ERROR_ON_SESSION:
+        mess = "Net error on session =(";
+        break;
+    case MESSAGE_TOO_LONG:
+        mess = "Message too long.";
+        break;
+    default:
+        mess = QString("Unknown error: %d").arg(errNum);
+        break;
+    }
+    return mess;
 }
 

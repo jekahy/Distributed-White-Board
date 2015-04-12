@@ -18,10 +18,15 @@ macx:QMAKE_LFLAGS += -stdlib=libc++
 
 SOURCES += main.cpp\
         window.cpp \
-    spreadmanager.cpp
+    spreadmanager.cpp \
+    notificationmanager.cpp \
+    canvass.cpp
 
 HEADERS  += window.h \
-    spreadmanager.h
+    spreadmanager.h \
+    singleton.h \
+    canvass.h \
+    notificationmanager.h
 
 FORMS    += window.ui
 

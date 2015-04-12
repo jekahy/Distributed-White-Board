@@ -47,11 +47,16 @@ private slots:
     void didDisconnect();
 
 protected:
-    void paintEvent(QPaintEvent *e);
-    void mousePressEvent(QMouseEvent *e);
-    void mouseReleaseEvent(QMouseEvent *e);
-    void mouseMoveEvent(QMouseEvent *e);
+    bool eventFilter(QObject* watched, QEvent* event);
 
+    void paintEvent(QPaintEvent *e);
+//    void mousePressEvent(QMouseEvent *e);
+//    void mouseReleaseEvent(QMouseEvent *e);
+//    void mouseMoveEvent(QMouseEvent *e);
+public slots:
+    void c_mousePressed(QPoint p);
+    void c_mouseMoved(QPoint p);
+    void c_mouseRelease(QPoint p);
 };
 
 #endif // WINDOW_H

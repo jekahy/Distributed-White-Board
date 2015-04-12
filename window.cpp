@@ -4,6 +4,7 @@
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <pthread.h>
+#include "canvass.h"
 
 #include <QtConcurrent/QtConcurrent>
 
@@ -26,47 +27,48 @@ Window::~Window()
 void Window::paintEvent(QPaintEvent *e){
 
     Q_UNUSED(e)
-    setAttribute(Qt::WA_OpaquePaintEvent);
+//    setAttribute(Qt::WA_OpaquePaintEvent);
 
-    QPainter painter(this);
-    QPen pointPen(Qt::blue);
-    pointPen.setWidth(3);
+//    QPainter painter(this);
+//    QPen pointPen(Qt::blue);
+//    pointPen.setWidth(3);
 
-    pointPen.setJoinStyle(Qt::RoundJoin);
-    painter.setPen(pointPen);
+//    pointPen.setJoinStyle(Qt::RoundJoin);
+//    painter.setPen(pointPen);
 
-    if (!points.isEmpty()){
+//    if (!points.isEmpty()){
 
-        if (points.count() > 1){
-            QLine line(points[points.count()-2], points[points.count()-1]);
-            painter.drawLine(line);
+//        if (points.count() > 1){
+//            QLine line(points[points.count()-2], points[points.count()-1]);
+//            painter.drawLine(line);
 
-        }else{
-            painter.drawPoint(points.last());
-        }
-    }
+//        }else{
+//            painter.drawPoint(points.last());
+//        }
+//    }
 }
 
 
-void Window::mousePressEvent(QMouseEvent *e){
+void Window::c_mousePressed(QPoint p){
 
-    QPoint p = e->pos();
+    if(!sp->connected)
+        return;
     startDrawing(p);
     sp->startDrawing(p);
-
 }
 
 
 void Window::startDrawing(QPoint p){
     mousePressed = true;
     points.append(p);
-    update();
+    ui->canvas->update();
 }
 
-void Window::mouseMoveEvent(QMouseEvent *e){
+void Window::c_mouseMoved(QPoint p){
 
+    if(!sp->connected)
+        return;
     if (mousePressed){
-        QPoint p = e->pos();
         sp->continueDrawing(p);
         continueDrawing(p);
     }
@@ -74,16 +76,18 @@ void Window::mouseMoveEvent(QMouseEvent *e){
 
 
 void Window::continueDrawing(QPoint p){
+
     points.append(p);
-    update();
+    ui->canvas->update();
 }
 
 
-void Window::mouseReleaseEvent(QMouseEvent *e){
+void Window::c_mouseRelease(QPoint p){
 
-    Q_UNUSED(e)
+    if(!sp->connected)
+        return;
     mousePressed = false;
-    QPoint p = points.last();
+//    QPoint p = points.last();
     sp->stopDrawing(p);
     stopDrawing();
 }
@@ -96,6 +100,13 @@ void Window::stopDrawing(){
 
 void Window::setup(){
 
+    ui->canvas->installEventFilter(this);
+
+    QObject::connect(ui->canvas,SIGNAL(c_mousePressed(QPoint)),this,SLOT(c_mousePressed(QPoint)),Qt::QueuedConnection);
+    QObject::connect(ui->canvas,SIGNAL(c_mouseMoved(QPoint)),this,SLOT(c_mouseMoved(QPoint)),Qt::QueuedConnection);
+    QObject::connect(ui->canvas,SIGNAL(c_mouseRelease(QPoint)),this,SLOT(c_mouseRelease(QPoint)),Qt::QueuedConnection);
+
+
     sp = new SpreadManager();
     sp->connected = false;
 
@@ -104,6 +115,37 @@ void Window::setup(){
     QObject::connect(sp,SIGNAL(didDisconnect()),this,SLOT(didDisconnect()),Qt::QueuedConnection);
 }
 
+bool Window::eventFilter(QObject* watched, QEvent* event){
+
+    if (watched == ui->canvas && event->type() == QEvent::Paint) {
+
+        setAttribute(Qt::WA_OpaquePaintEvent);
+
+        if (!points.isEmpty()){
+
+            QPainter painter;
+            painter.begin(ui->canvas);
+
+            QPen pointPen(Qt::blue);
+            pointPen.setWidth(3);
+
+            pointPen.setJoinStyle(Qt::RoundJoin);
+            painter.setPen(pointPen);
+
+            if (points.count() > 1){
+                QLine line(points[points.count()-2], points[points.count()-1]);
+                painter.drawLine(line);
+
+            }else{
+                painter.drawPoint(points.last());
+            }
+            painter.end();
+        }
+
+            return true; // return true if you do not want to have the child widget paint on its own afterwards, otherwise, return false.
+        }
+        return false;
+}
 
 void Window:: handleMess(char* mess){
 
@@ -149,8 +191,6 @@ void Window:: handleMess(char* mess){
     default:
         break;
     }
-
-
 }
 
 

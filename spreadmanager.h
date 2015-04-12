@@ -41,6 +41,8 @@ private:
     void Read_thread_routine();
     void Read_message(int fd, int code, void *data);
 
+    QString decryptErrorMessage(int errNum);
+
 signals:
 
     void didConnect();
