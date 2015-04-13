@@ -20,13 +20,13 @@ SOURCES += main.cpp\
         window.cpp \
     spreadmanager.cpp \
     notificationmanager.cpp \
-    canvass.cpp
+    canvas.cpp
 
 HEADERS  += window.h \
     spreadmanager.h \
     singleton.h \
-    canvass.h \
-    notificationmanager.h
+    notificationmanager.h \
+    canvas.h
 
 FORMS    += window.ui
 

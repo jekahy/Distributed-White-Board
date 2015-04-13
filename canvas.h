@@ -1,16 +1,17 @@
-#ifndef CANVASS_H
-#define CANVASS_H
+#include "QFrame"
+#include "QtGui"
 
-#include <QWidget>
-#include <QtGui>
-#include <QtCore>
+#ifndef CANVAS_H
+#define CANVAS_H
 
-class Canvass : public QWidget
+
+class Canvas : public QFrame
 {
-    Q_OBJECT
+Q_OBJECT
+
 public:
-    explicit Canvass(QWidget *parent = 0);
-    ~Canvass();
+    explicit Canvas( QWidget * parent = 0, Qt::WindowFlags f = 0);
+    ~Canvas();
 
 protected:
     void mousePressEvent(QMouseEvent *e);
@@ -23,4 +24,4 @@ signals:
     void c_mouseRelease(QPoint p);
 };
 
-#endif // CANVASS_H
+#endif // CANVAS_H

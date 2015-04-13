@@ -13,6 +13,12 @@
   <property name="windowTitle">
    <string>Window</string>
   </property>
+  <property name="autoFillBackground">
+   <bool>false</bool>
+  </property>
+  <property name="styleSheet">
+   <string notr="true"/>
+  </property>
   <widget class="QWidget" name="centralWidget">
    <widget class="QPushButton" name="button">
     <property name="geometry">
@@ -98,14 +104,26 @@
      <string>test message, kurwa</string>
     </property>
    </widget>
-   <widget class="Canvass" name="canvas" native="true">
+   <widget class="Canvas" name="canvas">
     <property name="geometry">
      <rect>
       <x>20</x>
       <y>20</y>
       <width>581</width>
-      <height>341</height>
+      <height>331</height>
      </rect>
+    </property>
+    <property name="styleSheet">
+     <string notr="true">border: 5px solid lightblue</string>
+    </property>
+    <property name="frameShape">
+     <enum>QFrame::StyledPanel</enum>
+    </property>
+    <property name="frameShadow">
+     <enum>QFrame::Raised</enum>
+    </property>
+    <property name="lineWidth">
+     <number>1</number>
     </property>
    </widget>
   </widget>
@@ -132,9 +150,9 @@
  <layoutdefault spacing="6" margin="11"/>
  <customwidgets>
   <customwidget>
-   <class>Canvass</class>
-   <extends>QWidget</extends>
-   <header>canvass.h</header>
+   <class>Canvas</class>
+   <extends>QFrame</extends>
+   <header>canvas.h</header>
    <container>1</container>
   </customwidget>
  </customwidgets>

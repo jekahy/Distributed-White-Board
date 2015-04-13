@@ -49,10 +49,6 @@ private slots:
 protected:
     bool eventFilter(QObject* watched, QEvent* event);
 
-    void paintEvent(QPaintEvent *e);
-//    void mousePressEvent(QMouseEvent *e);
-//    void mouseReleaseEvent(QMouseEvent *e);
-//    void mouseMoveEvent(QMouseEvent *e);
 public slots:
     void c_mousePressed(QPoint p);
     void c_mouseMoved(QPoint p);

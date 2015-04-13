@@ -4,7 +4,6 @@
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <pthread.h>
-#include "canvass.h"
 
 #include <QtConcurrent/QtConcurrent>
 
@@ -21,31 +20,6 @@ Window::Window(QWidget *parent) :
 Window::~Window()
 {
     delete ui;
-}
-
-
-void Window::paintEvent(QPaintEvent *e){
-
-    Q_UNUSED(e)
-//    setAttribute(Qt::WA_OpaquePaintEvent);
-
-//    QPainter painter(this);
-//    QPen pointPen(Qt::blue);
-//    pointPen.setWidth(3);
-
-//    pointPen.setJoinStyle(Qt::RoundJoin);
-//    painter.setPen(pointPen);
-
-//    if (!points.isEmpty()){
-
-//        if (points.count() > 1){
-//            QLine line(points[points.count()-2], points[points.count()-1]);
-//            painter.drawLine(line);
-
-//        }else{
-//            painter.drawPoint(points.last());
-//        }
-//    }
 }
 
 
