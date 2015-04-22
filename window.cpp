@@ -1,11 +1,7 @@
 #include "window.h"
 #include "ui_window.h"
 #include "sp.h"
-#include <sys/types.h>
-#include <sys/socket.h>
-#include <pthread.h>
 
-#include <QtConcurrent/QtConcurrent>
 
 Window::Window(QWidget *parent) :
     QMainWindow(parent),
@@ -34,7 +30,8 @@ void Window::c_mousePressed(QPoint p){
 
 void Window::startDrawing(QPoint p){
     mousePressed = true;
-    points.append(p);
+    line = new Line();
+    line->points.append(p);
     ui->canvas->update();
 }
 
@@ -51,7 +48,7 @@ void Window::c_mouseMoved(QPoint p){
 
 void Window::continueDrawing(QPoint p){
 
-    points.append(p);
+    line->points.append(p);
     ui->canvas->update();
 }
 
@@ -61,15 +58,14 @@ void Window::c_mouseRelease(QPoint p){
     if(!sp->connected)
         return;
     mousePressed = false;
-//    QPoint p = points.last();
     sp->stopDrawing(p);
     stopDrawing();
 }
 
 
 void Window::stopDrawing(){
-    p_arr.append(points);
-    points.clear();
+    p_arr.append(line);
+    line = new Line();
 }
 
 void Window::setup(){
@@ -84,7 +80,8 @@ void Window::setup(){
     sp = new SpreadManager();
     sp->connected = false;
 
-    QObject::connect(sp,SIGNAL(messReceived(char*)),this,SLOT(handleMess(char*)),Qt::QueuedConnection);
+
+    QObject::connect(sp,SIGNAL(messReceived(QString)),this,SLOT(handleMess(QString)),Qt::QueuedConnection);
     QObject::connect(sp,SIGNAL(didConnect()),this,SLOT(didConnect()),Qt::QueuedConnection);
     QObject::connect(sp,SIGNAL(didDisconnect()),this,SLOT(didDisconnect()),Qt::QueuedConnection);
 }
@@ -95,7 +92,7 @@ bool Window::eventFilter(QObject* watched, QEvent* event){
 
         setAttribute(Qt::WA_OpaquePaintEvent);
 
-        if (!points.isEmpty()){
+        if (line && !line->points.isEmpty()){
 
             QPainter painter;
             painter.begin(ui->canvas);
@@ -106,49 +103,32 @@ bool Window::eventFilter(QObject* watched, QEvent* event){
             pointPen.setJoinStyle(Qt::RoundJoin);
             painter.setPen(pointPen);
 
-            if (points.count() > 1){
-                QLine line(points[points.count()-2], points[points.count()-1]);
-                painter.drawLine(line);
+            if (line->points.count() > 1){
+                QLine qline(line->points[line->points.count()-2], line->points[line->points.count()-1]);
+                painter.drawLine(qline);
 
             }else{
-                painter.drawPoint(points.last());
+                painter.drawPoint(line->points.last());
             }
             painter.end();
         }
 
-            return true; // return true if you do not want to have the child widget paint on its own afterwards, otherwise, return false.
+        return true;
         }
-        return false;
+    return false;
 }
 
-void Window:: handleMess(char* mess){
+void Window:: handleMess(QString mess){
 
-    qDebug("message handled: %s",mess);
-
-    std::string str(mess);
-    std::string type = str.substr(str.find_first_of('com')+1, 1 );
-
-    printf("\"%s\"\n", type.c_str());
-
-    std::string xs("x=");
-    std::string ys("y=");
-
-    std::string::size_type start = str.find(xs)+2;
-    std::string::size_type length = str.find(ys)-1 - start;
-    std::string x_str = str.substr(start, length);
-
-    start = str.find(ys)+2;
-    length = str.length() - start;
-
-    std::string y_str = str.substr(start, length);
-
-    int x = std::stoi( x_str );
-    int y = std::stoi( y_str );
-    int t = std::stoi( type );
+    QJsonDocument jsonResponse = QJsonDocument::fromJson(mess.toUtf8());
+    QJsonObject jsonObject = jsonResponse.object();
+    int comm = jsonObject["com"].toInt();
+    int x = jsonObject["x"].toInt();
+    int y = jsonObject["y"].toInt();
 
     QPoint p = QPoint(x,y);
 
-    switch (t) {
+    switch (comm) {
 
     case 0:
         startDrawing(p);

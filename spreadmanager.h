@@ -28,6 +28,7 @@ public:
     void stopDrawing(QPoint p);
 
     void sendMes(QString mess);
+    void sendJSON(QJsonObject json);
 
 private:
 
@@ -42,12 +43,14 @@ private:
     void Read_message(int fd, int code, void *data);
 
     QString decryptErrorMessage(int errNum);
+    QJsonObject convertComToJSON(int comm, QPoint p);
+    void handleSecMessage(QString mess);
 
 signals:
 
     void didConnect();
     void didDisconnect();
-    void messReceived(char* mess);
+    void messReceived(QString mess);
 
 protected:
     QString name;

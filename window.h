@@ -6,7 +6,7 @@
 #include <QtGui>
 #include <QPushButton>
 #include "spreadmanager.h"
-
+#include "line.h"
 
 namespace Ui {
 class Window;
@@ -24,8 +24,10 @@ private:
     Ui::Window *ui;
     QPoint pos;
     QPushButton *button;
-    QVector<QPoint> points;
-    QVector<QVector<QPoint> > p_arr;
+
+//    QVector<QPoint> points;
+    QVector<Line*> p_arr;
+    Line *line;
 
     SpreadManager *sp;
 
@@ -41,7 +43,7 @@ private:
 private slots:
     void on_button_clicked();
     void on_pushButton_clicked();
-    void handleMess(char* mess);
+    void handleMess(QString mess);
     void on_connect_but_clicked();
     void didConnect();
     void didDisconnect();

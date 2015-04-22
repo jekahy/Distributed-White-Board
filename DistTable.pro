@@ -20,13 +20,15 @@ SOURCES += main.cpp\
         window.cpp \
     spreadmanager.cpp \
     notificationmanager.cpp \
-    canvas.cpp
+    canvas.cpp \
+    line.cpp
 
 HEADERS  += window.h \
     spreadmanager.h \
     singleton.h \
     notificationmanager.h \
-    canvas.h
+    canvas.h \
+    line.h
 
 FORMS    += window.ui
 
@@ -43,4 +45,8 @@ LIBS += -L$$PWD/lib/ -lspread
 LIBS += -L$$PWD/lib/ -ltspread-core
 LIBS += -L$$PWD/lib/ -lspread-core
 
-#LIBS += -lQt5Concurrent
+
+_QJSON_PATH = /usr/local/Cellar/qjson/0.8.1
+INCLUDEPATH += "$${_QJSON_PATH}/include/"
+LIBS += -L$${_QJSON_PATH}/lib
+

@@ -5,6 +5,11 @@
 #include "notificationmanager.h"
 #include "singleton.h"
 #include "qmessagebox.h"
+#include "qjson/qobjecthelper.h"
+#include "qjson/serializer.h"
+
+#include <QJsonDocument>
+#include <QJsonObject>
 
 SpreadManager::SpreadManager(QObject *parent) : QObject(parent)
 {
@@ -153,10 +158,10 @@ void SpreadManager::Read_message(int fd, int code, void *data)
 
 
         if(qsender != name){
-            emit messReceived(mess);
+
+            emit messReceived(QString(mess));
         }
 
-//        SpreadManager->messReceived(mess_type, mess);
     }else if( Is_membership_mess( service_type ) )
         {
                 ret = SP_get_memb_info( mess, service_type, &memb_info );
@@ -219,6 +224,7 @@ void SpreadManager::Read_message(int fd, int code, void *data)
     fflush(stdout);
 }
 
+
 void SpreadManager:: Read_thread_routine()
 {
 
@@ -247,6 +253,21 @@ void SpreadManager::sendMes(QString m){
     }
 }
 
+void SpreadManager::sendJSON(QJsonObject json){
+
+    QByteArray b_arr = QJsonDocument(json).toJson(QJsonDocument::Compact);
+
+    int m_len = b_arr.length();
+    const char *mess = b_arr.data();
+
+    int ret = SP_multicast(Mbox, SAFE_MESS, group_name, 1, m_len, mess);
+    if( ret < 0 ) {
+        SP_error( CONNECTION_CLOSED );
+        Bye();
+    }
+}
+
+
 void SpreadManager::Bye()
 {
     To_exit = 1;
@@ -257,23 +278,31 @@ void SpreadManager::Bye()
 }
 
 
-// drawing
-
 void SpreadManager::startDrawing(QPoint p){
-    QString mess = QString("com0 x=%1 y=%2").arg(QString::number(p.x()),QString::number(p.y()));
-    sendMes(mess);
+
+    sendJSON(convertComToJSON(0,p));
+}
+
+
+QJsonObject SpreadManager::convertComToJSON(int comm, QPoint p){
+
+    QJsonObject json;
+    json["x"] = p.x();
+    json["y"] = p.y();
+    json["com"] = comm;
+    return json;
 }
 
 
 void SpreadManager::continueDrawing(QPoint p){
-    QString mess = QString("com1 x=%1 y=%2").arg(QString::number(p.x()),QString::number(p.y()));
-    sendMes(mess);
+
+    sendJSON(convertComToJSON(1,p));
 }
 
 
 void SpreadManager::stopDrawing(QPoint p){
-    QString mess = QString("com2 x=%1 y=%2").arg(QString::number(p.x()),QString::number(p.y()));
-    sendMes(mess);
+
+    sendJSON(convertComToJSON(1,p));
 }
 
 
