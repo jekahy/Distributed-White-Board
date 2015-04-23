@@ -25,8 +25,8 @@ private:
     QPoint pos;
     QPushButton *button;
 
-//    QVector<QPoint> points;
     QVector<Line*> p_arr;
+    QVector<Line*> others_lines;
     Line *line;
 
     SpreadManager *sp;
@@ -35,10 +35,10 @@ private:
     int numOfLines;
     void setup();
 
-
     void startDrawing(QPoint p);
     void continueDrawing(QPoint p);
     void stopDrawing();
+    void readLinesFromJson(QJsonObject json);
 
 private slots:
     void on_button_clicked();
@@ -55,6 +55,8 @@ public slots:
     void c_mousePressed(QPoint p);
     void c_mouseMoved(QPoint p);
     void c_mouseRelease(QPoint p);
+//    void showAlert(QString mess, std::function< void(int) >& lambda);
+
 };
 
 #endif // WINDOW_H

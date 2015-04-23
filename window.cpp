@@ -84,6 +84,12 @@ void Window::setup(){
     QObject::connect(sp,SIGNAL(messReceived(QString)),this,SLOT(handleMess(QString)),Qt::QueuedConnection);
     QObject::connect(sp,SIGNAL(didConnect()),this,SLOT(didConnect()),Qt::QueuedConnection);
     QObject::connect(sp,SIGNAL(didDisconnect()),this,SLOT(didDisconnect()),Qt::QueuedConnection);
+
+    connect(sp,&SpreadManager::userJoined,[this](std::function< void(QVector<Line*>) >& lambda){
+        qDebug("joineddddddddddd");
+        lambda(p_arr);
+    });
+
 }
 
 bool Window::eventFilter(QObject* watched, QEvent* event){
@@ -112,6 +118,27 @@ bool Window::eventFilter(QObject* watched, QEvent* event){
             }
             painter.end();
         }
+
+        if (!others_lines.isEmpty()){
+
+            QPainter painter;
+            painter.begin(ui->canvas);
+
+            QPen pointPen(Qt::red);
+            pointPen.setWidth(3);
+
+            pointPen.setJoinStyle(Qt::RoundJoin);
+            painter.setPen(pointPen);
+
+            foreach (Line *l, others_lines) {
+                for(int idx = 0; idx < l->points.count()-1; idx++){
+                    QLine qline(l->points[idx], l->points[idx+1]);
+                    painter.drawLine(qline);
+                }
+            }
+            painter.end();
+        }
+
 
         return true;
         }
@@ -142,9 +169,35 @@ void Window:: handleMess(QString mess){
         stopDrawing();
         break;
 
+    case 3:
+        readLinesFromJson(jsonObject);
+        update();
+        break;
+
     default:
         break;
     }
+}
+
+
+void Window::readLinesFromJson(QJsonObject json){
+
+     QVector<Line*> lines;
+     QJsonArray j_lines = json["lines"].toArray();
+     foreach (QJsonValue line_val, j_lines) {
+         QJsonArray j_line = line_val.toArray();
+         Line *l = new Line();
+         foreach (QJsonValue point_val, j_line) {
+
+             QJsonObject j_point = point_val.toObject();
+             int x = j_point["x"].toInt();
+             int y = j_point["y"].toInt();
+             QPoint p = QPoint(x,y);
+             l->points.append(p);
+         }
+         lines.append(l);
+     }
+     others_lines = lines;
 }
 
 
@@ -186,5 +239,4 @@ void Window::on_connect_but_clicked()
     }else{
         sp->closeConnection();
     }
-
 }

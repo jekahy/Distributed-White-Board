@@ -6,6 +6,7 @@
 #include "sp.h"
 #include <atomic>
 #include <QtGui>
+#include "line.h"
 
 #define MAX_MESSLEN     102400
 #define MAX_VSSETS      10
@@ -29,6 +30,7 @@ public:
 
     void sendMes(QString mess);
     void sendJSON(QJsonObject json);
+    void sendPreviousLines(QVector<Line*> lines);
 
 private:
 
@@ -44,6 +46,7 @@ private:
 
     QString decryptErrorMessage(int errNum);
     QJsonObject convertComToJSON(int comm, QPoint p);
+    QJsonObject convertLinesToJSON(QVector<Line*> lines);
     void handleSecMessage(QString mess);
 
 signals:
@@ -51,6 +54,8 @@ signals:
     void didConnect();
     void didDisconnect();
     void messReceived(QString mess);
+    void userJoined(std::function< void(QVector<Line*>) >& lambda);
+    void receivedPreviousLines(QVector<Line*> lines);
 
 protected:
     QString name;

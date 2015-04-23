@@ -7,7 +7,6 @@
 #include "qmessagebox.h"
 #include "qjson/qobjecthelper.h"
 #include "qjson/serializer.h"
-
 #include <QJsonDocument>
 #include <QJsonObject>
 
@@ -181,6 +180,14 @@ void SpreadManager::Read_message(int fd, int code, void *data)
             if( Is_caused_join_mess( service_type ) )
             {
                 printf("Due to the JOIN of %s\n", memb_info.changed_member );
+
+                if(qsender != name){
+                    std::function<void (QVector<Line*>)> fp = [this](QVector<Line*> lines) {
+                       sendPreviousLines(lines);
+                    };
+                    emit userJoined(fp);
+                }
+
             }else if( Is_caused_leave_mess( service_type ) ){
                 printf("Due to the LEAVE of %s\n", memb_info.changed_member );
             }else if( Is_caused_disconnect_mess( service_type ) ){
@@ -268,6 +275,13 @@ void SpreadManager::sendJSON(QJsonObject json){
 }
 
 
+void SpreadManager::sendPreviousLines(QVector<Line*> lines){
+
+    sendJSON(convertLinesToJSON(lines));
+}
+
+
+
 void SpreadManager::Bye()
 {
     To_exit = 1;
@@ -290,6 +304,26 @@ QJsonObject SpreadManager::convertComToJSON(int comm, QPoint p){
     json["x"] = p.x();
     json["y"] = p.y();
     json["com"] = comm;
+    return json;
+}
+
+
+QJsonObject SpreadManager::convertLinesToJSON(QVector<Line*> lines){
+
+    QJsonObject json;
+    QJsonArray j_lines;
+    foreach (Line *l, lines) {
+        QJsonArray j_line;
+        foreach (QPoint p, l->points) {
+           QJsonObject j_l;
+           j_l["x"] = p.x();
+           j_l["y"] = p.y();
+           j_line.append(j_l);
+        }
+        j_lines.append(j_line);
+    }
+    json["lines"] = j_lines;
+    json["com"] = 3;
     return json;
 }
 
