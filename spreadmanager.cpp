@@ -157,8 +157,8 @@ void SpreadManager::Read_message(int fd, int code, void *data)
 
 
         if(qsender != name){
-
-            emit messReceived(QString(mess));
+            handleMessage(QString(mess));
+//            emit messReceived(QString(mess));
         }
 
     }else if( Is_membership_mess( service_type ) )
@@ -229,6 +229,60 @@ void SpreadManager::Read_message(int fd, int code, void *data)
 
     printf("\n");
     fflush(stdout);
+}
+
+
+void SpreadManager::handleMessage(QString mess){
+
+    QJsonDocument jsonResponse = QJsonDocument::fromJson(mess.toUtf8());
+    QJsonObject jsonObject = jsonResponse.object();
+    int comm = jsonObject["com"].toInt();
+
+    switch (comm) {
+
+    case 0:
+    case 1:
+    case 2:{
+        int x = jsonObject["x"].toInt();
+        int y = jsonObject["y"].toInt();
+        QPoint p = QPoint(x,y);
+        QVector <Line*> empty_v;
+        emit commReceived(comm, p, empty_v);
+        break;
+
+    }
+    case 3:{
+        QVector<Line*> lines = readLinesFromJson(jsonObject);
+        QPoint p = QPoint(0,0);
+
+        emit commReceived(comm, p, lines);
+
+        break;
+    }
+    default:
+        break;
+    }
+}
+
+
+QVector<Line*> SpreadManager::readLinesFromJson(QJsonObject json){
+
+     QVector<Line*> lines;
+     QJsonArray j_lines = json["lines"].toArray();
+     foreach (QJsonValue line_val, j_lines) {
+         QJsonArray j_line = line_val.toArray();
+         Line *l = new Line();
+         foreach (QJsonValue point_val, j_line) {
+
+             QJsonObject j_point = point_val.toObject();
+             int x = j_point["x"].toInt();
+             int y = j_point["y"].toInt();
+             QPoint p = QPoint(x,y);
+             l->points.append(p);
+         }
+         lines.append(l);
+     }
+     return lines;
 }
 
 

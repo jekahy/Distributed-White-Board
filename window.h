@@ -43,7 +43,8 @@ private:
 private slots:
     void on_button_clicked();
     void on_pushButton_clicked();
-    void handleMess(QString mess);
+    void handleComm(int comm, QPoint p, QVector<Line*> lines);
+
     void on_connect_but_clicked();
     void didConnect();
     void didDisconnect();

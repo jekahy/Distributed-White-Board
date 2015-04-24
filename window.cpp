@@ -81,7 +81,8 @@ void Window::setup(){
     sp->connected = false;
 
 
-    QObject::connect(sp,SIGNAL(messReceived(QString)),this,SLOT(handleMess(QString)),Qt::QueuedConnection);
+    qRegisterMetaType<QVector<Line*> >("QVector<Line*>");
+    QObject::connect(sp, SIGNAL(commReceived(int,QPoint,QVector<Line*>)), this, SLOT(handleComm(int,QPoint,QVector<Line*>)),Qt::QueuedConnection);
     QObject::connect(sp,SIGNAL(didConnect()),this,SLOT(didConnect()),Qt::QueuedConnection);
     QObject::connect(sp,SIGNAL(didDisconnect()),this,SLOT(didDisconnect()),Qt::QueuedConnection);
 
@@ -145,15 +146,7 @@ bool Window::eventFilter(QObject* watched, QEvent* event){
     return false;
 }
 
-void Window:: handleMess(QString mess){
-
-    QJsonDocument jsonResponse = QJsonDocument::fromJson(mess.toUtf8());
-    QJsonObject jsonObject = jsonResponse.object();
-    int comm = jsonObject["com"].toInt();
-    int x = jsonObject["x"].toInt();
-    int y = jsonObject["y"].toInt();
-
-    QPoint p = QPoint(x,y);
+void Window::handleComm(int comm, QPoint p, QVector<Line*> lines){
 
     switch (comm) {
 
@@ -170,34 +163,13 @@ void Window:: handleMess(QString mess){
         break;
 
     case 3:
-        readLinesFromJson(jsonObject);
+        others_lines = lines;
         update();
         break;
 
     default:
         break;
     }
-}
-
-
-void Window::readLinesFromJson(QJsonObject json){
-
-     QVector<Line*> lines;
-     QJsonArray j_lines = json["lines"].toArray();
-     foreach (QJsonValue line_val, j_lines) {
-         QJsonArray j_line = line_val.toArray();
-         Line *l = new Line();
-         foreach (QJsonValue point_val, j_line) {
-
-             QJsonObject j_point = point_val.toObject();
-             int x = j_point["x"].toInt();
-             int y = j_point["y"].toInt();
-             QPoint p = QPoint(x,y);
-             l->points.append(p);
-         }
-         lines.append(l);
-     }
-     others_lines = lines;
 }
 
 

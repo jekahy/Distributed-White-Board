@@ -44,6 +44,10 @@ private:
     void Read_thread_routine();
     void Read_message(int fd, int code, void *data);
 
+    void handleMessage(QString mess);
+
+    QVector<Line*> readLinesFromJson(QJsonObject json);
+
     QString decryptErrorMessage(int errNum);
     QJsonObject convertComToJSON(int comm, QPoint p);
     QJsonObject convertLinesToJSON(QVector<Line*> lines);
@@ -53,7 +57,9 @@ signals:
 
     void didConnect();
     void didDisconnect();
-    void messReceived(QString mess);
+//    void messReceived(QString mess);
+    void commReceived(int comm, QPoint p, QVector<Line*> lines);
+
     void userJoined(std::function< void(QVector<Line*>) >& lambda);
     void receivedPreviousLines(QVector<Line*> lines);
 
