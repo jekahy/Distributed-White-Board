@@ -3,6 +3,7 @@
 
 #include <QObject>
 #include <QMessageBox>
+#include "singleton.h"
 
 //template<typename Functor>
 

@@ -1,7 +1,7 @@
 #include "window.h"
 #include "ui_window.h"
 #include "sp.h"
-
+#include "notificationmanager.h"
 
 Window::Window(QWidget *parent) :
     QMainWindow(parent),
@@ -59,17 +59,23 @@ void Window::c_mouseRelease(QPoint p){
         return;
     mousePressed = false;
     sp->stopDrawing(p);
-    stopDrawing();
+    stopDrawing(true);
 }
 
 
-void Window::stopDrawing(){
-    p_arr.append(line);
+void Window::stopDrawing(bool mine){
+    if(mine)
+        p_arr.append(line);
+    else
+        others_lines.append(line);
+
     line = new Line();
 }
 
 void Window::setup(){
 
+    QVector<Line*> lines;
+    others_lines = lines;
     ui->canvas->installEventFilter(this);
 
     QObject::connect(ui->canvas,SIGNAL(c_mousePressed(QPoint)),this,SLOT(c_mousePressed(QPoint)),Qt::QueuedConnection);
@@ -80,7 +86,6 @@ void Window::setup(){
     sp = new SpreadManager();
     sp->connected = false;
 
-
     qRegisterMetaType<QVector<Line*> >("QVector<Line*>");
     QObject::connect(sp, SIGNAL(commReceived(int,QPoint,QVector<Line*>)), this, SLOT(handleComm(int,QPoint,QVector<Line*>)),Qt::QueuedConnection);
     QObject::connect(sp,SIGNAL(didConnect()),this,SLOT(didConnect()),Qt::QueuedConnection);
@@ -88,9 +93,8 @@ void Window::setup(){
 
     connect(sp,&SpreadManager::userJoined,[this](std::function< void(QVector<Line*>) >& lambda){
         qDebug("joineddddddddddd");
-        lambda(p_arr);
+        lambda(p_arr + others_lines);
     });
-
 }
 
 bool Window::eventFilter(QObject* watched, QEvent* event){
@@ -159,7 +163,7 @@ void Window::handleComm(int comm, QPoint p, QVector<Line*> lines){
         break;
 
     case 2:
-        stopDrawing();
+        stopDrawing(false);
         break;
 
     case 3:
@@ -211,4 +215,34 @@ void Window::on_connect_but_clicked()
     }else{
         sp->closeConnection();
     }
+}
+
+void Window::on_startDaemonBut_clicked()
+{
+
+
+    QDir cur_dir = QDir::current();
+    cur_dir.cdUp();
+    cur_dir.cdUp();
+    cur_dir.cdUp();
+    QString sp_dir = cur_dir.path() + QString("/spread");
+    QString file = sp_dir + QString("/spread");
+    QString config = sp_dir + QString("/spread.conf");
+
+    QStringList arguments;
+    arguments << "-c" << config;
+
+   QProcess *process = new QProcess(this);
+
+   bool success = process->startDetached(file, arguments);
+   if(!success){
+
+       NotificationManager *notm = &Singleton<NotificationManager>::Instance();
+       std::function<void (int)> fp = [](int a) { Q_UNUSED(a); };
+       notm->showAlert("Failed to start spread daemon",fp);
+   }
+
+   QString s = process->errorString();
+
+
 }

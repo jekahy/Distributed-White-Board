@@ -30,7 +30,9 @@ public:
 
     void sendMes(QString mess);
     void sendJSON(QJsonObject json);
-    void sendPreviousLines(QVector<Line*> lines);
+    void sendPreviousLines(QVector<Line*> lines, QString target);
+
+    int myGroupNum = 0;
 
 private:
 
@@ -51,6 +53,8 @@ private:
     QString decryptErrorMessage(int errNum);
     QJsonObject convertComToJSON(int comm, QPoint p);
     QJsonObject convertLinesToJSON(QVector<Line*> lines);
+    QString getNameFromStr(QString str);
+
     void handleSecMessage(QString mess);
 
 signals:

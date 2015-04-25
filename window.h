@@ -37,7 +37,7 @@ private:
 
     void startDrawing(QPoint p);
     void continueDrawing(QPoint p);
-    void stopDrawing();
+    void stopDrawing(bool mine);
     void readLinesFromJson(QJsonObject json);
 
 private slots:
@@ -49,6 +49,8 @@ private slots:
     void didConnect();
     void didDisconnect();
 
+    void on_startDaemonBut_clicked();
+
 protected:
     bool eventFilter(QObject* watched, QEvent* event);
 
@@ -56,7 +58,6 @@ public slots:
     void c_mousePressed(QPoint p);
     void c_mouseMoved(QPoint p);
     void c_mouseRelease(QPoint p);
-//    void showAlert(QString mess, std::function< void(int) >& lambda);
 
 };
 

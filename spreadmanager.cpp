@@ -3,7 +3,6 @@
 #include <string>
 #include <QDebug>
 #include "notificationmanager.h"
-#include "singleton.h"
 #include "qmessagebox.h"
 #include "qjson/qobjecthelper.h"
 #include "qjson/serializer.h"
@@ -77,13 +76,13 @@ void SpreadManager::closeConnection(){
     emit didDisconnect();
 }
 
-char* SpreadManager::toChar(QString str){
-
-    char* cstr;
-    std::string fname = str.toStdString();
-    cstr = new char [fname.size()+1];
-    strcpy( cstr, fname.c_str() );
-    return cstr;
+void SpreadManager::Bye()
+{
+    To_exit = 1;
+    printf("\nBye.\n");
+    closeConnection();
+//    pthread_join( Read_pthread, NULL );
+    exit( 0 );
 }
 
 void SpreadManager::Read_message(int fd, int code, void *data)
@@ -114,14 +113,13 @@ void SpreadManager::Read_message(int fd, int code, void *data)
         &mess_type, &endian_mismatch, sizeof(mess), mess );
     printf("\n============================\n");
 
-    QString qs = QString(sender);
-    QStringList strList = qs.split('#');
+//    QString qs = QString(sender);
+//    QStringList strList = qs.split('#');
 
-    QString qsender;
-    if(strList.count()>1){
-        qsender = strList[1];
-
-    }
+    QString qsender = getNameFromStr(QString(sender));
+//    if(strList.count()>1){
+//        qsender = strList[1];
+//    }
 
 
     if( ret < 0 )
@@ -156,9 +154,8 @@ void SpreadManager::Read_message(int fd, int code, void *data)
             sender, mess_type, endian_mismatch, num_groups, ret, mess );
 
 
-        if(qsender != name){
+        if(qsender != "" & qsender != name){
             handleMessage(QString(mess));
-//            emit messReceived(QString(mess));
         }
 
     }else if( Is_membership_mess( service_type ) )
@@ -177,18 +174,22 @@ void SpreadManager::Read_message(int fd, int code, void *data)
                 printf("\t%s\n", &target_groups[i][0] );
             printf("grp id is %d %d %d\n",memb_info.gid.id[0], memb_info.gid.id[1], memb_info.gid.id[2] );
 
+            myGroupNum = mess_type;
+
             if( Is_caused_join_mess( service_type ) )
             {
                 printf("Due to the JOIN of %s\n", memb_info.changed_member );
 
-                if(qsender != name){
-                    std::function<void (QVector<Line*>)> fp = [this](QVector<Line*> lines) {
-                       sendPreviousLines(lines);
+                if(qsender == ""  & myGroupNum == 0){
+
+                    std::function<void (QVector<Line*>)> fp = [this, memb_info](QVector<Line*> lines) {
+                       sendPreviousLines(lines, getNameFromStr(QString(memb_info.changed_member)));
                     };
                     emit userJoined(fp);
                 }
 
             }else if( Is_caused_leave_mess( service_type ) ){
+
                 printf("Due to the LEAVE of %s\n", memb_info.changed_member );
             }else if( Is_caused_disconnect_mess( service_type ) ){
                 printf("Due to the DISCONNECT of %s\n", memb_info.changed_member );
@@ -231,6 +232,15 @@ void SpreadManager::Read_message(int fd, int code, void *data)
     fflush(stdout);
 }
 
+QString SpreadManager::getNameFromStr(QString str){
+
+    QStringList strList = str.split('#');
+    if(strList.count()>1)
+        return strList[1];
+    else
+        return "";
+}
+
 
 void SpreadManager::handleMessage(QString mess){
 
@@ -252,37 +262,19 @@ void SpreadManager::handleMessage(QString mess){
 
     }
     case 3:{
-        QVector<Line*> lines = readLinesFromJson(jsonObject);
-        QPoint p = QPoint(0,0);
+        QString target = jsonObject["target"].toString();
+        if(target == name){
+            QVector<Line*> lines = readLinesFromJson(jsonObject);
+            QPoint p = QPoint(0,0);
 
-        emit commReceived(comm, p, lines);
+            emit commReceived(comm, p, lines);
+        }
 
         break;
     }
     default:
         break;
     }
-}
-
-
-QVector<Line*> SpreadManager::readLinesFromJson(QJsonObject json){
-
-     QVector<Line*> lines;
-     QJsonArray j_lines = json["lines"].toArray();
-     foreach (QJsonValue line_val, j_lines) {
-         QJsonArray j_line = line_val.toArray();
-         Line *l = new Line();
-         foreach (QJsonValue point_val, j_line) {
-
-             QJsonObject j_point = point_val.toObject();
-             int x = j_point["x"].toInt();
-             int y = j_point["y"].toInt();
-             QPoint p = QPoint(x,y);
-             l->points.append(p);
-         }
-         lines.append(l);
-     }
-     return lines;
 }
 
 
@@ -329,26 +321,29 @@ void SpreadManager::sendJSON(QJsonObject json){
 }
 
 
-void SpreadManager::sendPreviousLines(QVector<Line*> lines){
+void SpreadManager::sendPreviousLines(QVector<Line*> lines, QString target){
 
-    sendJSON(convertLinesToJSON(lines));
-}
-
-
-
-void SpreadManager::Bye()
-{
-    To_exit = 1;
-    printf("\nBye.\n");
-    closeConnection();
-//    pthread_join( Read_pthread, NULL );
-    exit( 0 );
+    QJsonObject json = convertLinesToJSON(lines);
+    json["target"] = target;
+    json["com"] = 3;
+    sendJSON(json);
 }
 
 
 void SpreadManager::startDrawing(QPoint p){
 
     sendJSON(convertComToJSON(0,p));
+}
+
+void SpreadManager::continueDrawing(QPoint p){
+
+    sendJSON(convertComToJSON(1,p));
+}
+
+
+void SpreadManager::stopDrawing(QPoint p){
+
+    sendJSON(convertComToJSON(2,p));
 }
 
 
@@ -377,20 +372,7 @@ QJsonObject SpreadManager::convertLinesToJSON(QVector<Line*> lines){
         j_lines.append(j_line);
     }
     json["lines"] = j_lines;
-    json["com"] = 3;
     return json;
-}
-
-
-void SpreadManager::continueDrawing(QPoint p){
-
-    sendJSON(convertComToJSON(1,p));
-}
-
-
-void SpreadManager::stopDrawing(QPoint p){
-
-    sendJSON(convertComToJSON(1,p));
 }
 
 
@@ -441,5 +423,36 @@ QString SpreadManager::decryptErrorMessage(int errNum){
         break;
     }
     return mess;
+}
+
+
+QVector<Line*> SpreadManager::readLinesFromJson(QJsonObject json){
+
+     QVector<Line*> lines;
+     QJsonArray j_lines = json["lines"].toArray();
+     foreach (QJsonValue line_val, j_lines) {
+         QJsonArray j_line = line_val.toArray();
+         Line *l = new Line();
+         foreach (QJsonValue point_val, j_line) {
+
+             QJsonObject j_point = point_val.toObject();
+             int x = j_point["x"].toInt();
+             int y = j_point["y"].toInt();
+             QPoint p = QPoint(x,y);
+             l->points.append(p);
+         }
+         lines.append(l);
+     }
+     return lines;
+}
+
+
+char* SpreadManager::toChar(QString str){
+
+    char* cstr;
+    std::string fname = str.toStdString();
+    cstr = new char [fname.size()+1];
+    strcpy( cstr, fname.c_str() );
+    return cstr;
 }
 

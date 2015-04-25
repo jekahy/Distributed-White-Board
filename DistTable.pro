@@ -50,3 +50,16 @@ _QJSON_PATH = /usr/local/Cellar/qjson/0.8.1
 INCLUDEPATH += "$${_QJSON_PATH}/include/"
 LIBS += -L$${_QJSON_PATH}/lib
 
+
+OTHER_FILES += \
+    $$PWD/spread_daemon/spread \
+    $$PWD/spread_daemon/spread.conf
+
+
+# copy spread daemon and config file
+
+copydata.commands = $(COPY_DIR) $$PWD/spread_daemon $$OUT_PWD/spread
+first.depends = $(first) copydata
+export(first.depends)
+export(copydata.commands)
+QMAKE_EXTRA_TARGETS += first copydata
