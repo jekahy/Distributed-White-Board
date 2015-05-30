@@ -92,7 +92,6 @@ void Window::setup(){
     QObject::connect(sp,SIGNAL(didDisconnect()),this,SLOT(didDisconnect()),Qt::QueuedConnection);
 
     connect(sp,&SpreadManager::userJoined,[this](std::function< void(QVector<Line*>) >& lambda){
-        qDebug("joineddddddddddd");
         lambda(p_arr + others_lines);
     });
 }
@@ -219,8 +218,6 @@ void Window::on_connect_but_clicked()
 
 void Window::on_startDaemonBut_clicked()
 {
-
-
     QDir cur_dir = QDir::current();
     cur_dir.cdUp();
     cur_dir.cdUp();
@@ -243,6 +240,4 @@ void Window::on_startDaemonBut_clicked()
    }
 
    QString s = process->errorString();
-
-
 }

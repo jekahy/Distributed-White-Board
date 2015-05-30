@@ -34,6 +34,8 @@ public:
 
     int myGroupNum = 0;
 
+    QMutex cancelMutex;
+
 private:
 
     QMutex q_mutex;
@@ -44,7 +46,7 @@ private:
 
     char* toChar(QString str);
     void Read_thread_routine();
-    void Read_message(int fd, int code, void *data);
+    void Read_message();
 
     void handleMessage(QString mess);
 

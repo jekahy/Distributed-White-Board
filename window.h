@@ -31,6 +31,8 @@ private:
 
     SpreadManager *sp;
 
+//    QProcess *daemon;
+
     bool mousePressed;
     int numOfLines;
     void setup();
@@ -39,6 +41,7 @@ private:
     void continueDrawing(QPoint p);
     void stopDrawing(bool mine);
     void readLinesFromJson(QJsonObject json);
+
 
 private slots:
     void on_button_clicked();
@@ -50,6 +53,8 @@ private slots:
     void didDisconnect();
 
     void on_startDaemonBut_clicked();
+
+//    void on_killDaemonBut_clicked();
 
 protected:
     bool eventFilter(QObject* watched, QEvent* event);

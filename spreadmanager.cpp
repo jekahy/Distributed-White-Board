@@ -19,6 +19,7 @@ SpreadManager::~SpreadManager()
 
 }
 
+
 void SpreadManager::initConnection(QString _port, QString _name, QString _group){
 
     this->name = _name;
@@ -57,11 +58,13 @@ void SpreadManager::initConnection(QString _port, QString _name, QString _group)
         Bye();
 
     }
+
     connected = true;
 
     emit didConnect();
 
     QtConcurrent::run(this,&SpreadManager::Read_thread_routine);
+
 
     qDebug("User: connected to %s with private group %s\n", port, Private_group);
 }
@@ -69,11 +72,8 @@ void SpreadManager::initConnection(QString _port, QString _name, QString _group)
 
 void SpreadManager::closeConnection(){
 
-    int t = SP_disconnect( Mbox );
-    qDebug("disconected:%d",t);
-    connected = false;
-
-    emit didDisconnect();
+    SP_disconnect( Mbox );
+    qDebug("disconected");
 }
 
 void SpreadManager::Bye()
@@ -81,16 +81,10 @@ void SpreadManager::Bye()
     To_exit = 1;
     printf("\nBye.\n");
     closeConnection();
-//    pthread_join( Read_pthread, NULL );
-    exit( 0 );
 }
 
-void SpreadManager::Read_message(int fd, int code, void *data)
+void SpreadManager::Read_message()
 {
-
-    Q_UNUSED(fd);
-    Q_UNUSED(code);
-    Q_UNUSED(data);
 
     static	char		 mess[MAX_MESSLEN];
     char		 sender[MAX_GROUP_NAME];    
@@ -113,34 +107,33 @@ void SpreadManager::Read_message(int fd, int code, void *data)
         &mess_type, &endian_mismatch, sizeof(mess), mess );
     printf("\n============================\n");
 
-//    QString qs = QString(sender);
-//    QStringList strList = qs.split('#');
-
     QString qsender = getNameFromStr(QString(sender));
-//    if(strList.count()>1){
-//        qsender = strList[1];
-//    }
-
 
     if( ret < 0 )
     {
-                if ( (ret == GROUPS_TOO_SHORT) || (ret == BUFFER_TOO_SHORT) ) {
-                        service_type = DROP_RECV;
-                        printf("\n========Buffers or Groups too Short=======\n");
-                        ret = SP_receive( Mbox, &service_type, sender, MAX_MEMBERS, &num_groups, target_groups,
+
+        if ( (ret == GROUPS_TOO_SHORT) || (ret == BUFFER_TOO_SHORT) ) {
+
+            service_type = DROP_RECV;
+
+            printf("\n========Buffers or Groups too Short=======\n");
+
+            ret = SP_receive( Mbox, &service_type, sender, MAX_MEMBERS, &num_groups, target_groups,
                                           &mess_type, &endian_mismatch, sizeof(mess), mess );
-                }
         }
-        if (ret < 0 )
-        {
-        if( ! To_exit )
-        {
-            SP_error( ret );
-            printf("\n============================\n");
-            printf("\nBye.\n");
+
+        SP_error( ret );
+        printf("\n============================\n");
+        printf("\nBye.\n");
+
+        connected = false;
+        if( ! To_exit ){
+            emit didDisconnect();
+        }else{
+            qApp->exit();
         }
-        exit( 0 );
-    }
+    }else
+
     if( Is_regular_mess( service_type ) )
     {
         mess[ret] = 0;
@@ -174,16 +167,19 @@ void SpreadManager::Read_message(int fd, int code, void *data)
                 printf("\t%s\n", &target_groups[i][0] );
             printf("grp id is %d %d %d\n",memb_info.gid.id[0], memb_info.gid.id[1], memb_info.gid.id[2] );
 
-            myGroupNum = mess_type;
 
             if( Is_caused_join_mess( service_type ) )
             {
                 printf("Due to the JOIN of %s\n", memb_info.changed_member );
 
-                if(qsender == ""  & myGroupNum == 0){
+                QString newUser = getNameFromStr(QString(memb_info.changed_member));
+
+                if( newUser != name & myGroupNum == 0){
 
                     std::function<void (QVector<Line*>)> fp = [this, memb_info](QVector<Line*> lines) {
-                       sendPreviousLines(lines, getNameFromStr(QString(memb_info.changed_member)));
+                        if(lines.count()>0){
+                            sendPreviousLines(lines, getNameFromStr(QString(memb_info.changed_member)));
+                        }
                     };
                     emit userJoined(fp);
                 }
@@ -216,6 +212,9 @@ void SpreadManager::Read_message(int fd, int code, void *data)
                                                 printf("\t%s\n", members[j] );
                                 }
             }
+
+            myGroupNum = mess_type;
+
         }else if( Is_transition_mess(   service_type ) ) {
             printf("received TRANSITIONAL membership for group %s\n", sender );
         }else if( Is_caused_leave_mess( service_type ) ){
@@ -227,7 +226,6 @@ void SpreadManager::Read_message(int fd, int code, void *data)
             sender, service_type, mess_type, endian_mismatch, num_groups, ret, mess );
     }else printf("received message of unknown message type 0x%x with ret %d\n", service_type, ret);
 
-
     printf("\n");
     fflush(stdout);
 }
@@ -238,7 +236,7 @@ QString SpreadManager::getNameFromStr(QString str){
     if(strList.count()>1)
         return strList[1];
     else
-        return "";
+        return str;
 }
 
 
@@ -280,18 +278,11 @@ void SpreadManager::handleMessage(QString mess){
 
 void SpreadManager:: Read_thread_routine()
 {
-
     while(connected)
-//    forever
     {
-//        if(!connected){
-//            qDebug("break");
-//            return;
-//        }
-        Read_message(0,0,NULL);
+        Read_message();
     }
-    qDebug("break\n\n\n\n\\n\n\n\n");
-    return ;
+    return;
 }
 
 
@@ -455,4 +446,3 @@ char* SpreadManager::toChar(QString str){
     strcpy( cstr, fname.c_str() );
     return cstr;
 }
-

@@ -101,7 +101,7 @@
      </rect>
     </property>
     <property name="text">
-     <string>test message, kurwa</string>
+     <string>test message</string>
     </property>
    </widget>
    <widget class="Canvas" name="canvas">
