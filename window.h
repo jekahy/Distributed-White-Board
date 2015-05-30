@@ -7,6 +7,7 @@
 #include <QPushButton>
 #include "spreadmanager.h"
 #include "line.h"
+#include <QNetworkInterface>
 
 namespace Ui {
 class Window;
@@ -18,6 +19,8 @@ class Window : public QMainWindow
 
 public:
     explicit Window(QWidget *parent = 0);
+//    QProcess *daemon = NULL;
+
     ~Window();
 
 private:
@@ -31,8 +34,6 @@ private:
 
     SpreadManager *sp;
 
-//    QProcess *daemon;
-
     bool mousePressed;
     int numOfLines;
     void setup();
@@ -42,6 +43,13 @@ private:
     void stopDrawing(bool mine);
     void readLinesFromJson(QJsonObject json);
 
+    QString findMyIp();
+    QString findNetMask(QString ip);
+
+    void createConfigFile();
+
+    void stopDaemon();
+    bool checkIfDaemonIsRunning();
 
 private slots:
     void on_button_clicked();

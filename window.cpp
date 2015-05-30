@@ -15,6 +15,7 @@ Window::Window(QWidget *parent) :
 
 Window::~Window()
 {
+    stopDaemon();
     delete ui;
 }
 
@@ -94,6 +95,9 @@ void Window::setup(){
     connect(sp,&SpreadManager::userJoined,[this](std::function< void(QVector<Line*>) >& lambda){
         lambda(p_arr + others_lines);
     });
+
+    if(checkIfDaemonIsRunning())
+        ui->startDaemonBut->setText("Stop Daemon");
 }
 
 bool Window::eventFilter(QObject* watched, QEvent* event){
@@ -197,8 +201,14 @@ void Window::didDisconnect(){
 
 void Window::on_button_clicked()
 {
-    sp->Bye();
+
+    stopDaemon();
+    if (sp->connected)
+        sp->Bye();
+    else
+        qApp->exit();
 }
+
 
 void Window::on_pushButton_clicked()
 {
@@ -218,26 +228,106 @@ void Window::on_connect_but_clicked()
 
 void Window::on_startDaemonBut_clicked()
 {
+    if(checkIfDaemonIsRunning()){
+        stopDaemon();
+    }else{
+        createConfigFile();
+
+        QDir cur_dir = QDir::current();
+        cur_dir.cdUp();
+        cur_dir.cdUp();
+        cur_dir.cdUp();
+        QString sp_dir = cur_dir.path() + QString("/spread");
+        QString file = sp_dir + QString("/spread");
+        QString config = sp_dir + QString("/spread.conf");
+
+        QStringList arguments;
+        arguments << "-c" << config;
+
+       QProcess *process = new QProcess(this);
+
+       bool success = process->startDetached(file, arguments);
+       if(!success){
+
+           NotificationManager *notm = &Singleton<NotificationManager>::Instance();
+           std::function<void (int)> fp = [](int a) { Q_UNUSED(a); };
+           notm->showAlert("Failed to start spread daemon",fp);
+       }
+       ui->startDaemonBut->setText("Stop Daemon");
+    }
+}
+
+
+void Window::stopDaemon(){
+
+    system("pkill spread");
+    ui->startDaemonBut->setText("Start Daemon");
+}
+
+
+QString Window::findMyIp(){
+
+    foreach (const QHostAddress &address, QNetworkInterface::allAddresses()) {
+        if (address.protocol() == QAbstractSocket::IPv4Protocol && address != QHostAddress(QHostAddress::LocalHost)){
+             return address.toString();
+        }
+    }
+    return "";
+}
+
+
+QString Window::findNetMask(QString ip){
+
+    foreach (const QNetworkInterface &interface, QNetworkInterface::allInterfaces()) {
+        foreach(const QNetworkAddressEntry &aEntry, interface.addressEntries()){
+            if(ip== aEntry.ip().toString()){
+                return aEntry.netmask().toString();
+            }
+        }
+    }
+    return "";
+}
+
+void Window::createConfigFile(){
+
+    QString ip = findMyIp();
+    QString mask = findNetMask(ip);
+
     QDir cur_dir = QDir::current();
     cur_dir.cdUp();
     cur_dir.cdUp();
     cur_dir.cdUp();
     QString sp_dir = cur_dir.path() + QString("/spread");
-    QString file = sp_dir + QString("/spread");
-    QString config = sp_dir + QString("/spread.conf");
 
-    QStringList arguments;
-    arguments << "-c" << config;
+    QString name = sp_dir + QString("/spread.conf");
+    QFile file(name);
+    file.open(QIODevice::WriteOnly | QIODevice::Text);
+    QTextStream out(&file);
+    out << "Spread_Segment  "<< mask << ":" << ui->portField->text() << "{\n";
+    out << "  me    " << ip << "\n";
+    out << "}";
+}
 
-   QProcess *process = new QProcess(this);
 
-   bool success = process->startDetached(file, arguments);
-   if(!success){
+bool Window::checkIfDaemonIsRunning(){
 
-       NotificationManager *notm = &Singleton<NotificationManager>::Instance();
-       std::function<void (int)> fp = [](int a) { Q_UNUSED(a); };
-       notm->showAlert("Failed to start spread daemon",fp);
-   }
+    QProcess process1;
+    QProcess process2;
+    QProcess process3;
 
-   QString s = process->errorString();
+
+    process1.setStandardOutputProcess(&process2);
+    process2.setStandardOutputProcess(&process3);
+    process1.start("ps", QStringList() << "aux");
+    process2.start("grep", QStringList() << "spread");
+    process3.start("grep", QStringList() << "-v" << "grep");
+    process3.waitForFinished();
+
+    QString output(process3.readAllStandardOutput());
+
+    process1.close();
+    process2.close();
+    process3.close();
+
+   return output != "";
 }
