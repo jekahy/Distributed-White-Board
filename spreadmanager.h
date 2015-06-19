@@ -30,7 +30,7 @@ public:
 
     void sendMes(QString mess);
     void sendJSON(QJsonObject json);
-    void sendPreviousLines(QVector<Line*> lines, QString target);
+    void sendPreviousLines(QVector<Line> lines, QString target);
 
     int myGroupNum = 0;
 
@@ -50,11 +50,11 @@ private:
 
     void handleMessage(QString mess);
 
-    QVector<Line*> readLinesFromJson(QJsonObject json);
+    QVector<Line> readLinesFromJson(QJsonObject json);
 
     QString decryptErrorMessage(int errNum);
     QJsonObject convertComToJSON(int comm, QPoint p);
-    QJsonObject convertLinesToJSON(QVector<Line*> lines);
+    QJsonObject convertLinesToJSON(QVector<Line> lines);
     QString getNameFromStr(QString str);
 
     void handleSecMessage(QString mess);
@@ -63,11 +63,10 @@ signals:
 
     void didConnect();
     void didDisconnect();
-//    void messReceived(QString mess);
-    void commReceived(int comm, QPoint p, QVector<Line*> lines);
+    void commReceived(int comm, QPoint p, QVector<Line> lines);
 
-    void userJoined(std::function< void(QVector<Line*>) >& lambda);
-    void receivedPreviousLines(QVector<Line*> lines);
+    void userJoined(std::function< void(QVector<Line>) >& lambda);
+    void receivedPreviousLines(QVector<Line> lines);
 
 protected:
     QString name;

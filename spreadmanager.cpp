@@ -11,6 +11,7 @@
 
 SpreadManager::SpreadManager(QObject *parent) : QObject(parent)
 {
+    connected = false;
 
 }
 
@@ -41,13 +42,11 @@ void SpreadManager::initConnection(QString _port, QString _name, QString _group)
         SP_error( ret );
         QString errMess = decryptErrorMessage(ret);
 
-        NotificationManager *notm = &Singleton<NotificationManager>::Instance();
-        std::function<void (int)> fp = [](int a) { Q_UNUSED(a); };
-
-
-//        std::function<void (QMessageBox)> butFunc = [](QMessageBox mbox)->void { mbox.setStandardButtons(QMessageBox::Ok);};
-        notm->showAlert(errMess,fp);
-//        NotificationManager::showAlert(errMess,fp);
+        std::function<void (QMessageBox*)> btnFunc = [errMess](QMessageBox *mb) {
+            mb->addButton("OK",QMessageBox::AcceptRole);
+            mb->setText(errMess);
+        };
+        NotificationManager::showAlert(btnFunc);
         return;
     }
 
@@ -56,7 +55,6 @@ void SpreadManager::initConnection(QString _port, QString _name, QString _group)
     {
         SP_error( ret );
         Bye();
-
     }
 
     connected = true;
@@ -176,7 +174,7 @@ void SpreadManager::Read_message()
 
                 if( newUser != name & myGroupNum == 0){
 
-                    std::function<void (QVector<Line*>)> fp = [this, memb_info](QVector<Line*> lines) {
+                    std::function<void (QVector<Line>)> fp = [this, memb_info](QVector<Line> lines) {
                         if(lines.count()>0){
                             sendPreviousLines(lines, getNameFromStr(QString(memb_info.changed_member)));
                         }
@@ -254,7 +252,7 @@ void SpreadManager::handleMessage(QString mess){
         int x = jsonObject["x"].toInt();
         int y = jsonObject["y"].toInt();
         QPoint p = QPoint(x,y);
-        QVector <Line*> empty_v;
+        QVector <Line> empty_v;
         emit commReceived(comm, p, empty_v);
         break;
 
@@ -262,7 +260,7 @@ void SpreadManager::handleMessage(QString mess){
     case 3:{
         QString target = jsonObject["target"].toString();
         if(target == name){
-            QVector<Line*> lines = readLinesFromJson(jsonObject);
+            QVector<Line> lines = readLinesFromJson(jsonObject);
             QPoint p = QPoint(0,0);
 
             emit commReceived(comm, p, lines);
@@ -312,7 +310,7 @@ void SpreadManager::sendJSON(QJsonObject json){
 }
 
 
-void SpreadManager::sendPreviousLines(QVector<Line*> lines, QString target){
+void SpreadManager::sendPreviousLines(QVector<Line> lines, QString target){
 
     QJsonObject json = convertLinesToJSON(lines);
     json["target"] = target;
@@ -348,13 +346,13 @@ QJsonObject SpreadManager::convertComToJSON(int comm, QPoint p){
 }
 
 
-QJsonObject SpreadManager::convertLinesToJSON(QVector<Line*> lines){
+QJsonObject SpreadManager::convertLinesToJSON(QVector<Line> lines){
 
     QJsonObject json;
     QJsonArray j_lines;
-    foreach (Line *l, lines) {
+    foreach (Line l, lines) {
         QJsonArray j_line;
-        foreach (QPoint p, l->points) {
+        foreach (QPoint p, l.points) {
            QJsonObject j_l;
            j_l["x"] = p.x();
            j_l["y"] = p.y();
@@ -417,20 +415,20 @@ QString SpreadManager::decryptErrorMessage(int errNum){
 }
 
 
-QVector<Line*> SpreadManager::readLinesFromJson(QJsonObject json){
+QVector<Line> SpreadManager::readLinesFromJson(QJsonObject json){
 
-     QVector<Line*> lines;
+     QVector<Line> lines;
      QJsonArray j_lines = json["lines"].toArray();
      foreach (QJsonValue line_val, j_lines) {
          QJsonArray j_line = line_val.toArray();
-         Line *l = new Line();
+         Line l;
          foreach (QJsonValue point_val, j_line) {
 
              QJsonObject j_point = point_val.toObject();
              int x = j_point["x"].toInt();
              int y = j_point["y"].toInt();
              QPoint p = QPoint(x,y);
-             l->points.append(p);
+             l.points.append(p);
          }
          lines.append(l);
      }

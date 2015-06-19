@@ -19,7 +19,6 @@ class Window : public QMainWindow
 
 public:
     explicit Window(QWidget *parent = 0);
-//    QProcess *daemon = NULL;
 
     ~Window();
 
@@ -28,19 +27,19 @@ private:
     QPoint pos;
     QPushButton *button;
 
-    QVector<Line*> p_arr;
-    QVector<Line*> others_lines;
-    Line *line;
+    QVector<Line> p_arr;
+    QVector<Line> others_lines;
+    Line line;
+    Line remote_line;
 
     SpreadManager *sp;
 
     bool mousePressed;
-    int numOfLines;
     void setup();
 
     void startDrawing(QPoint p);
     void continueDrawing(QPoint p);
-    void stopDrawing(bool mine);
+    void stopDrawing(bool remote);
     void readLinesFromJson(QJsonObject json);
 
     QString findMyIp();
@@ -53,16 +52,13 @@ private:
 
 private slots:
     void on_button_clicked();
-    void on_pushButton_clicked();
-    void handleComm(int comm, QPoint p, QVector<Line*> lines);
+    void handleComm(int comm, QPoint p, QVector<Line> lines);
 
     void on_connect_but_clicked();
     void didConnect();
     void didDisconnect();
 
     void on_startDaemonBut_clicked();
-
-//    void on_killDaemonBut_clicked();
 
 protected:
     bool eventFilter(QObject* watched, QEvent* event);

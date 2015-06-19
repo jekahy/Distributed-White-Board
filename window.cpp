@@ -8,8 +8,6 @@ Window::Window(QWidget *parent) :
     ui(new Ui::Window)
 {
     ui->setupUi(this);
-    numOfLines = 0;
-
     this->setup();
 }
 
@@ -31,8 +29,8 @@ void Window::c_mousePressed(QPoint p){
 
 void Window::startDrawing(QPoint p){
     mousePressed = true;
-    line = new Line();
-    line->points.append(p);
+    line.points.clear();
+    line.points.append(p);
     ui->canvas->update();
 }
 
@@ -49,7 +47,7 @@ void Window::c_mouseMoved(QPoint p){
 
 void Window::continueDrawing(QPoint p){
 
-    line->points.append(p);
+    line.points.append(p);
     ui->canvas->update();
 }
 
@@ -70,13 +68,13 @@ void Window::stopDrawing(bool mine){
     else
         others_lines.append(line);
 
-    line = new Line();
+    line.points.clear();
 }
 
 void Window::setup(){
 
-    QVector<Line*> lines;
-    others_lines = lines;
+
+    others_lines = QVector<Line>();
     ui->canvas->installEventFilter(this);
 
     QObject::connect(ui->canvas,SIGNAL(c_mousePressed(QPoint)),this,SLOT(c_mousePressed(QPoint)),Qt::QueuedConnection);
@@ -85,14 +83,13 @@ void Window::setup(){
 
 
     sp = new SpreadManager();
-    sp->connected = false;
 
-    qRegisterMetaType<QVector<Line*> >("QVector<Line*>");
-    QObject::connect(sp, SIGNAL(commReceived(int,QPoint,QVector<Line*>)), this, SLOT(handleComm(int,QPoint,QVector<Line*>)),Qt::QueuedConnection);
+    qRegisterMetaType<QVector<Line> >("QVector<Line>");
+    QObject::connect(sp, SIGNAL(commReceived(int,QPoint,QVector<Line>)), this, SLOT(handleComm(int,QPoint,QVector<Line>)),Qt::QueuedConnection);
     QObject::connect(sp,SIGNAL(didConnect()),this,SLOT(didConnect()),Qt::QueuedConnection);
     QObject::connect(sp,SIGNAL(didDisconnect()),this,SLOT(didDisconnect()),Qt::QueuedConnection);
 
-    connect(sp,&SpreadManager::userJoined,[this](std::function< void(QVector<Line*>) >& lambda){
+    connect(sp,&SpreadManager::userJoined,[this](std::function< void(QVector<Line>) >& lambda){
         lambda(p_arr + others_lines);
     });
 
@@ -106,7 +103,7 @@ bool Window::eventFilter(QObject* watched, QEvent* event){
 
         setAttribute(Qt::WA_OpaquePaintEvent);
 
-        if (line && !line->points.isEmpty()){
+        if (!line.points.isEmpty()){
 
             QPainter painter;
             painter.begin(ui->canvas);
@@ -117,12 +114,12 @@ bool Window::eventFilter(QObject* watched, QEvent* event){
             pointPen.setJoinStyle(Qt::RoundJoin);
             painter.setPen(pointPen);
 
-            if (line->points.count() > 1){
-                QLine qline(line->points[line->points.count()-2], line->points[line->points.count()-1]);
+            if (line.points.count() > 1){
+                QLine qline(line.points[line.points.count()-2], line.points[line.points.count()-1]);
                 painter.drawLine(qline);
 
             }else{
-                painter.drawPoint(line->points.last());
+                painter.drawPoint(line.points.last());
             }
             painter.end();
         }
@@ -138,9 +135,9 @@ bool Window::eventFilter(QObject* watched, QEvent* event){
             pointPen.setJoinStyle(Qt::RoundJoin);
             painter.setPen(pointPen);
 
-            foreach (Line *l, others_lines) {
-                for(int idx = 0; idx < l->points.count()-1; idx++){
-                    QLine qline(l->points[idx], l->points[idx+1]);
+            foreach (Line l, others_lines) {
+                for(int idx = 0; idx < l.points.count()-1; idx++){
+                    QLine qline(l.points[idx], l.points[idx+1]);
                     painter.drawLine(qline);
                 }
             }
@@ -153,7 +150,7 @@ bool Window::eventFilter(QObject* watched, QEvent* event){
     return false;
 }
 
-void Window::handleComm(int comm, QPoint p, QVector<Line*> lines){
+void Window::handleComm(int comm, QPoint p, QVector<Line> lines){
 
     switch (comm) {
 
@@ -184,8 +181,6 @@ void Window::didConnect(){
 
     ui->nameField->setDisabled(sp->connected);
     ui->portField->setDisabled(sp->connected);
-    ui->messField->setDisabled(!sp->connected);
-    ui->pushButton->setDisabled(!sp->connected);
     ui->connect_but->setText("Disconnect");
 }
 
@@ -193,8 +188,6 @@ void Window::didConnect(){
 void Window::didDisconnect(){
     ui->nameField->setDisabled(sp->connected);
     ui->portField->setDisabled(sp->connected);
-    ui->messField->setDisabled(!sp->connected);
-    ui->pushButton->setDisabled(!sp->connected);
     ui->connect_but->setText("Connect");
 }
 
@@ -209,11 +202,6 @@ void Window::on_button_clicked()
         qApp->exit();
 }
 
-
-void Window::on_pushButton_clicked()
-{
-    sp->sendMes(ui->messField->text());
-}
 
 void Window::on_connect_but_clicked()
 {
@@ -249,9 +237,11 @@ void Window::on_startDaemonBut_clicked()
        bool success = process->startDetached(file, arguments);
        if(!success){
 
-           NotificationManager *notm = &Singleton<NotificationManager>::Instance();
-           std::function<void (int)> fp = [](int a) { Q_UNUSED(a); };
-           notm->showAlert("Failed to start spread daemon",fp);
+           std::function<void (QMessageBox*)> btnFunc = [](QMessageBox *mb) {
+               mb->addButton("OK",QMessageBox::AcceptRole);
+               mb->setText("Failed to start spread daemon");
+           };
+           NotificationManager::showAlert(btnFunc);
        }
        ui->startDaemonBut->setText("Stop Daemon");
     }
@@ -305,7 +295,38 @@ void Window::createConfigFile(){
     QTextStream out(&file);
     out << "Spread_Segment  "<< mask << ":" << ui->portField->text() << "{\n";
     out << "  me    " << ip << "\n";
-    out << "}";
+
+
+//    std::string ipp = "192.168.0.1";
+//    QStringList d = ip.split(".");
+    ip.truncate(ip.lastIndexOf(".")+1);
+
+//    out << "  me    " << ip + "63#10" << "\n";
+
+//    for(int idx=1; idx<= 128; idx++){
+//        out << "\nSpread_Segment  "<< mask << ":" << ui->portField->text() << "{\n";
+//        out << "  machine" << idx << "   " << ip+QString::number(idx) << "\n";
+//        out << "}\n";
+//    }
+
+    out << "}\n";
+
+
+//    out << "Spread_Segment2  "<< mask << ":" << ui->portField->text() << "{\n";
+//    out << "  me    " << ip << "\n";
+
+
+//    std::string ipp = "192.168.0.1";
+//    QStringList d = ip.split(".");
+//    ip.truncate(ip.lastIndexOf(".")+1);
+
+//    out << "  me    " << ip + "63#10" << "\n";
+
+//    for(int idx=129; idx<= 256; idx++){
+//        out << "  machine" << idx << "   " << ip+QString::number(idx) << "\n";
+//    }
+
+//    out << "}";
 }
 
 
@@ -314,7 +335,6 @@ bool Window::checkIfDaemonIsRunning(){
     QProcess process1;
     QProcess process2;
     QProcess process3;
-
 
     process1.setStandardOutputProcess(&process2);
     process2.setStandardOutputProcess(&process3);

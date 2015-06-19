@@ -4,21 +4,11 @@
 #include <QObject>
 #include <QtGui>
 
-class Line : public QObject
-{
-    Q_OBJECT
-
-
+struct Line {
 
 public:
 
-    Line(QObject* parent = 0);
-    ~Line();
-
     QVector<QPoint> points;
-
-    QString owner;
-
 
 };
 

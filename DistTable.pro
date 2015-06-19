@@ -20,8 +20,7 @@ SOURCES += main.cpp\
         window.cpp \
     spreadmanager.cpp \
     notificationmanager.cpp \
-    canvas.cpp \
-    line.cpp
+    canvas.cpp
 
 HEADERS  += window.h \
     spreadmanager.h \
