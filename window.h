@@ -27,8 +27,8 @@ private:
     QPoint pos;
     QPushButton *button;
 
-    QVector<Line> p_arr;
-    QVector<Line> others_lines;
+    QVector<Line> my_lines;
+    QVector<Line> remote_lines;
     Line line;
     Line remote_line;
 
@@ -37,8 +37,8 @@ private:
     bool mousePressed;
     void setup();
 
-    void startDrawing(QPoint p);
-    void continueDrawing(QPoint p);
+    void startDrawing(QPoint p, bool remote);
+    void continueDrawing(QPoint p, bool remote);
     void stopDrawing(bool remote);
     void readLinesFromJson(QJsonObject json);
 

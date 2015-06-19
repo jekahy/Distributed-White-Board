@@ -22,15 +22,21 @@ void Window::c_mousePressed(QPoint p){
 
     if(!sp->connected)
         return;
-    startDrawing(p);
+    startDrawing(p,false);
     sp->startDrawing(p);
 }
 
 
-void Window::startDrawing(QPoint p){
-    mousePressed = true;
-    line.points.clear();
-    line.points.append(p);
+void Window::startDrawing(QPoint p, bool remote){
+
+    if(remote){
+        remote_line.points.clear();
+        remote_line.points.append(p);
+    }else{
+        mousePressed = true;
+        line.points.clear();
+        line.points.append(p);
+    }
     ui->canvas->update();
 }
 
@@ -40,14 +46,18 @@ void Window::c_mouseMoved(QPoint p){
         return;
     if (mousePressed){
         sp->continueDrawing(p);
-        continueDrawing(p);
+        continueDrawing(p, false);
     }
 }
 
 
-void Window::continueDrawing(QPoint p){
+void Window::continueDrawing(QPoint p, bool remote){
 
-    line.points.append(p);
+    if(remote)
+        remote_line.points.append(p);
+    else
+        line.points.append(p);
+
     ui->canvas->update();
 }
 
@@ -64,9 +74,9 @@ void Window::c_mouseRelease(QPoint p){
 
 void Window::stopDrawing(bool mine){
     if(mine)
-        p_arr.append(line);
+        my_lines.append(line);
     else
-        others_lines.append(line);
+        remote_lines.append(line);
 
     line.points.clear();
 }
@@ -74,7 +84,7 @@ void Window::stopDrawing(bool mine){
 void Window::setup(){
 
 
-    others_lines = QVector<Line>();
+    remote_lines = QVector<Line>();
     ui->canvas->installEventFilter(this);
 
     QObject::connect(ui->canvas,SIGNAL(c_mousePressed(QPoint)),this,SLOT(c_mousePressed(QPoint)),Qt::QueuedConnection);
@@ -90,7 +100,7 @@ void Window::setup(){
     QObject::connect(sp,SIGNAL(didDisconnect()),this,SLOT(didDisconnect()),Qt::QueuedConnection);
 
     connect(sp,&SpreadManager::userJoined,[this](std::function< void(QVector<Line>) >& lambda){
-        lambda(p_arr + others_lines);
+        lambda(my_lines + remote_lines);
     });
 
     if(checkIfDaemonIsRunning())
@@ -124,7 +134,7 @@ bool Window::eventFilter(QObject* watched, QEvent* event){
             painter.end();
         }
 
-        if (!others_lines.isEmpty()){
+        if (!remote_line.points.isEmpty()){
 
             QPainter painter;
             painter.begin(ui->canvas);
@@ -135,7 +145,28 @@ bool Window::eventFilter(QObject* watched, QEvent* event){
             pointPen.setJoinStyle(Qt::RoundJoin);
             painter.setPen(pointPen);
 
-            foreach (Line l, others_lines) {
+            if (remote_line.points.count() > 1){
+                QLine qline(remote_line.points[remote_line.points.count()-2], remote_line.points[remote_line.points.count()-1]);
+                painter.drawLine(qline);
+
+            }else{
+                painter.drawPoint(remote_line.points.last());
+            }
+            painter.end();
+        }
+
+        if (!remote_lines.isEmpty()){
+
+            QPainter painter;
+            painter.begin(ui->canvas);
+
+            QPen pointPen(Qt::red);
+            pointPen.setWidth(3);
+
+            pointPen.setJoinStyle(Qt::RoundJoin);
+            painter.setPen(pointPen);
+
+            foreach (Line l, remote_lines) {
                 for(int idx = 0; idx < l.points.count()-1; idx++){
                     QLine qline(l.points[idx], l.points[idx+1]);
                     painter.drawLine(qline);
@@ -155,11 +186,11 @@ void Window::handleComm(int comm, QPoint p, QVector<Line> lines){
     switch (comm) {
 
     case 0:
-        startDrawing(p);
+        startDrawing(p, true);
         break;
 
     case 1:
-        continueDrawing(p);
+        continueDrawing(p, true);
         break;
 
     case 2:
@@ -167,7 +198,7 @@ void Window::handleComm(int comm, QPoint p, QVector<Line> lines){
         break;
 
     case 3:
-        others_lines = lines;
+        remote_lines = lines;
         update();
         break;
 
